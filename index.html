@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>KC — Validador de Cuadrados Mágicos</title>
+<style>
+  :root{
+    --parchment: #c8e3ec;
+    --parchment-dark: #DDCFA6;
+    --ink: #2B2118;
+    --ink-soft: #5A4A37;
+    --gold: #A9852E;
+    --gold-bright: #C9A23F;
+    --vermilion: #9C3B2C;
+    --ok-green: #3E5C3A;
+    --line: #B8A569;
+    --shadow: rgba(43,33,24,0.35);
+    
+    --font-display: 'Cinzel', 'Iowan Old Style', 'Palatino Linotype', serif;
+    --font-body: 'EB Garamond', 'Palatino Linotype', Georgia, serif;
+    --font-mono: 'Spectral', Georgia, serif;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html,body{
+    margin:0; padding:0;
+    background:
+      radial-gradient(ellipse at top left, rgba(255,250,230,0.5), transparent 60%),
+      radial-gradient(ellipse at bottom right, rgba(0,0,0,0.15), transparent 60%),
+      var(--parchment);
+    color: var(--ink);
+    font-family: var(--font-body);
+    min-height: 100vh;
+  }
+
+  .stage{
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 48px 28px 80px;
+  }
+
+  header{
+    text-align:center;
+    margin-bottom: 38px;
+    position: relative;
+  }
+
+  .seal{
+    width: 96px; height: 96px;
+    margin: 0 auto 14px;
+    position: relative;
+  }
+  .seal svg{
+    width:100%; height:100%;
+    animation: turn 60s linear infinite;
+    filter: drop-shadow(0 2px 3px var(--shadow));
+  }
+  @keyframes turn{ to{ transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce){
+    .seal svg{ animation: none; }
+  }
+
+  h1{
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    font-size: clamp(28px, 4.4vw, 42px);
+    margin: 0 0 6px;
+    color: var(--ink);
+    text-transform: uppercase;
+  }
+  h1 span{ color: var(--vermilion); }
+
+  .subtitle{
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 17px;
+    max-width: 520px;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+
+  hr.divider{
+    border: none;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--line), transparent);
+    margin: 30px auto;
+    width: 70%;
+  }
+
+  .controls{
+    display:flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    align-items: flex-end;
+    justify-content: center;
+    margin-bottom: 30px;
+  }
+
+  .field{
+    display:flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .field label{
+    font-family: var(--font-display);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  select, button, input{
+    font-family: var(--font-body);
+    font-size: 16px;
+  }
+
+  select{
+    padding: 9px 14px;
+    border: 1px solid var(--line);
+    background: var(--parchment-dark);
+    color: var(--ink);
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .btn{
+    border: 1px solid var(--gold);
+    background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+    color: #2B2118;
+    padding: 10px 22px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: var(--font-display);
+    letter-spacing: 0.06em;
+    font-size: 13px;
+    text-transform: uppercase;
+    font-weight: 600;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    box-shadow: 0 2px 0 var(--shadow);
+  }
+  .btn:hover{ transform: translateY(-1px); box-shadow: 0 3px 6px var(--shadow); }
+  .btn:active{ transform: translateY(1px); box-shadow: 0 1px 0 var(--shadow); }
+
+  .btn.secondary{
+    background: var(--parchment-dark);
+    color: var(--ink-soft);
+    border-color: var(--line);
+  }
+
+  .grid-wrap{
+    display:flex;
+    justify-content:center;
+    margin: 10px 0 26px;
+    overflow-x: auto;
+  }
+
+  table.square{
+    border-collapse: collapse;
+    background: rgba(255,253,244,0.5);
+    border: 2px solid var(--ink);
+    box-shadow: 0 6px 18px var(--shadow);
+  }
+  table.square td{
+    border: 1px solid var(--line);
+    padding: 0;
+    width: 64px; height: 64px;
+  }
+  @media (max-width: 520px){
+    table.square td{ width: 44px; height: 44px; }
+  }
+
+  table.square input{
+    width: 100%; height: 100%;
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 20px;
+    color: var(--ink);
+    outline: none;
+  }
+  table.square input:focus{
+    background: rgba(169,133,46,0.18);
+  }
+
+  td.cell-ok input{ color: var(--ok-green); }
+  td.cell-bad input{ color: var(--vermilion); }
+
+  .constant{
+    text-align:center;
+    font-family: var(--font-display);
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+    margin-bottom: 22px;
+    font-size: 14px;
+  }
+  .constant strong{ color: var(--vermilion); font-size: 16px; }
+
+  .verdict{
+    max-width: 620px;
+    margin: 0 auto 28px;
+    padding: 18px 24px;
+    border-radius: 4px;
+    text-align:center;
+    font-family: var(--font-display);
+    letter-spacing: 0.03em;
+    border: 1px solid;
+    display: none;
+    line-height: 1.6;
+  }
+  .verdict.show{ display:block; }
+  .verdict.ok{
+    background: rgba(62,92,58,0.12);
+    border-color: var(--ok-green);
+    color: var(--ok-green);
+  }
+  .verdict.bad{
+    background: rgba(156,59,44,0.1);
+    border-color: var(--vermilion);
+    color: var(--vermilion);
+  }
+  .verdict .big{
+    display:block;
+    font-size: 22px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .verdict .small{
+    font-family: var(--font-body);
+    font-style: italic;
+    font-size: 14.5px;
+    font-weight: 400;
+    letter-spacing: normal;
+  }
+
+  ul.reasons{
+    text-align:left;
+    font-family: var(--font-body);
+    font-style: normal;
+    font-size: 14px;
+    margin: 10px auto 0;
+    max-width: 480px;
+    padding-left: 20px;
+    line-height: 1.7;
+  }
+
+  footer{
+    text-align:center;
+    margin-top: 40px;
+    color: var(--ink-soft);
+    font-size: 13px;
+    font-style: italic;
+    border-top: 1px solid var(--line);
+    padding-top: 18px;
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <header>
+    <div class="seal" aria-hidden="true">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="46" fill="none" stroke="#A9852E" stroke-width="1.5"/>
+        <circle cx="50" cy="50" r="38" fill="none" stroke="#9C3B2C" stroke-width="1"/>
+        <g fill="#5A4A37">
+          <circle cx="50" cy="6"  r="2"/><circle cx="50" cy="94" r="2"/>
+          <circle cx="6"  cy="50" r="2"/><circle cx="94" cy="50" r="2"/>
+          <circle cx="18" cy="18" r="2"/><circle cx="82" cy="18" r="2"/>
+          <circle cx="18" cy="82" r="2"/><circle cx="82" cy="82" r="2"/>
+        </g>
+        <polygon points="50,12 79,68 21,68" fill="none" stroke="#A9852E" stroke-width="1.2"/>
+        <polygon points="50,88 21,32 79,32" fill="none" stroke="#9C3B2C" stroke-width="1.2"/>
+        <circle cx="50" cy="50" r="6" fill="#A9852E"/>
+      </svg>
+    </div>
+    <h1> <span>KC</span> — Cuadrado Mágico</h1>
+    <p class="subtitle">Elige el orden, traza la tabla y graba tus cifras. El sello solo se cierra si filas, columnas y diagonales conjuran la misma constante.</p>
+  </header>
+
+  <hr class="divider">
+
+  <div class="controls">
+    <div class="field">
+      <label for="orderSelect">Orden del cuadrado (n × n)</label>
+      <select id="orderSelect">
+        <option value="3">3 × 3</option>
+        <option value="4">4 × 4</option>
+        <option value="5">5 × 5</option>
+        <option value="6">6 × 6</option>
+        <option value="7">7 × 7</option>
+        <option value="8">8 × 8</option>
+        <option value="9">9 × 9</option>
+      </select>
+    </div>
+    <button class="btn" id="buildBtn">Trazar tabla</button>
+    <button class="btn secondary" id="clearBtn">Vaciar celdas</button>
+    <button class="btn secondary" id="fillBtn">Autocompletar ejemplo</button>
+  </div>
+
+  <p class="constant" id="constantHint"></p>
+
+  <div class="grid-wrap">
+    <table class="square" id="squareTable"></table>
+  </div>
+
+  <div style="text-align:center; margin-bottom: 10px;">
+    <button class="btn" id="validateBtn">Sellar y validar</button>
+  </div>
+
+  <div class="verdict" id="verdict">
+    <span class="big" id="verdictTitle"></span>
+    <span class="small" id="verdictBody"></span>
+    <ul class="reasons" id="verdictReasons" style="display:none;"></ul>
+  </div>
+
+  <footer>
+    Un cuadrado mágico de orden n dispone los números 1 a n² sin repetir, de modo que toda fila, columna<br>
+    y ambas diagonales principales sumen la misma constante mágica M = n(n²+1)/2.
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  const orderSelect    = document.getElementById('orderSelect');
+  const buildBtn        = document.getElementById('buildBtn');
+  const clearBtn         = document.getElementById('clearBtn');
+  const fillBtn           = document.getElementById('fillBtn');
+  const validateBtn      = document.getElementById('validateBtn');
+  const table             = document.getElementById('squareTable');
+  const constantHint    = document.getElementById('constantHint');
+  const verdict            = document.getElementById('verdict');
+  const verdictTitle      = document.getElementById('verdictTitle');
+  const verdictBody       = document.getElementById('verdictBody');
+  const verdictReasons   = document.getElementById('verdictReasons');
+
+  let n = 3;
+
+  function magicConstant(order){
+    return order * (order*order + 1) / 2;
+  }
+
+  function buildGrid(order){
+    n = order;
+    table.innerHTML = '';
+    for(let r=0; r<n; r++){
+      const tr = document.createElement('tr');
+      for(let c=0; c<n; c++){
+        const td = document.createElement('td');
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.inputMode = 'numeric';
+        input.maxLength = 4;
+        input.dataset.row = r;
+        input.dataset.col = c;
+        input.addEventListener('input', () => {
+          input.value = input.value.replace(/[^0-9]/g, '');
+        });
+        td.appendChild(input);
+        tr.appendChild(td);
+      }
+      table.appendChild(tr);
+    }
+    constantHint.innerHTML = `Para este orden, la constante mágica buscada es <strong>${magicConstant(n)}</strong> (usando 1 a ${n*n} sin repetir).`;
+    verdict.classList.remove('show','ok','bad');
+    verdictReasons.style.display = 'none';
+    verdictReasons.innerHTML = '';
+  }
+
+  function clearGrid(){
+    table.querySelectorAll('input').forEach(i => {
+      i.value = '';
+      i.closest('td').classList.remove('cell-ok','cell-bad');
+    });
+    verdict.classList.remove('show','ok','bad');
+  }
+
+  function siameseOdd(order){
+    const sq = Array.from({length:order}, () => Array(order).fill(0));
+    let i = 0, j = Math.floor(order/2);
+    for(let num=1; num<=order*order; num++){
+      sq[i][j] = num;
+      const ni = (i-1+order) % order;
+      const nj = (j+1) % order;
+      if(sq[ni][nj] !== 0){
+        i = (i+1) % order;
+      } else {
+        i = ni; j = nj;
+      }
+    }
+    return sq;
+  }
+
+  function durerLike4(){
+    return [
+      [16,3,2,13],
+      [5,10,11,8],
+      [9,6,7,12],
+      [4,15,14,1]
+    ];
+  }
+
+  function doublyEven(order){
+    const sq = Array.from({length:order}, (_, r) => Array.from({length:order}, (_, c) => r*order + c + 1));
+    for(let r=0; r<order; r++){
+      for(let c=0; c<order; c++){
+        const onPattern = ((r%4===0||r%4===3) === (c%4===0||c%4===3));
+        if(onPattern){
+          sq[r][c] = order*order + 1 - sq[r][c];
+        }
+      }
+    }
+    return sq;
+  }
+
+  function exampleSquare(order){
+    if(order % 2 === 1) return siameseOdd(order);
+    if(order === 4) return durerLike4();
+    if(order % 4 === 0) return doublyEven(order);
+    return null;
+  }
+
+  function fillExample(){
+    const sq = exampleSquare(n);
+    if(!sq){
+      verdict.classList.add('show','bad');
+      verdictTitle.textContent = 'Sin ejemplo automático';
+      verdictBody.textContent = `No hay una construcción rápida de ejemplo para orden ${n} (par no múltiplo de 4). Pruébalo cargándolo manualmente.`;
+      verdictReasons.style.display = 'none';
+      return;
+    }
+    table.querySelectorAll('input').forEach(input => {
+      const r = +input.dataset.row, c = +input.dataset.col;
+      input.value = sq[r][c];
+      input.closest('td').classList.remove('cell-ok','cell-bad');
+    });
+    verdict.classList.remove('show','ok','bad');
+  }
+
+  function readGrid(){
+    const grid = Array.from({length:n}, () => Array(n).fill(null));
+    let allFilled = true;
+    table.querySelectorAll('input').forEach(input => {
+      const r = +input.dataset.row, c = +input.dataset.col;
+      const v = input.value.trim();
+      if(v === ''){ allFilled = false; grid[r][c] = null; }
+      else grid[r][c] = parseInt(v, 10);
+    });
+    return { grid, allFilled };
+  }
+
+  function markCells(rowOK, colOK, diagMainOK, diagAntiOK){
+    table.querySelectorAll('input').forEach(input => {
+      const r = +input.dataset.row, c = +input.dataset.col;
+      const td = input.closest('td');
+      td.classList.remove('cell-ok','cell-bad');
+      const partOfBadRow = !rowOK[r];
+      const partOfBadCol = !colOK[c];
+      const partOfBadDiagMain = (r===c) && !diagMainOK;
+      const partOfBadDiagAnti = (r+c===n-1) && !diagAntiOK;
+      const bad = partOfBadRow || partOfBadCol || partOfBadDiagMain || partOfBadDiagAnti;
+      td.classList.add(bad ? 'cell-bad' : 'cell-ok');
+    });
+  }
+
+  function markAllBad(){
+    table.querySelectorAll('td').forEach(td => {
+      td.classList.remove('cell-ok');
+      td.classList.add('cell-bad');
+    });
+  }
+
+  function showVerdict(ok, title, body, reasons){
+    verdict.classList.remove('ok','bad');
+    verdict.classList.add('show', ok ? 'ok' : 'bad');
+    verdictTitle.textContent = title;
+    verdictBody.textContent = body;
+    if(reasons && reasons.length){
+      verdictReasons.style.display = 'block';
+      verdictReasons.innerHTML = reasons.map(r => `<li>${r}</li>`).join('');
+    } else {
+      verdictReasons.style.display = 'none';
+      verdictReasons.innerHTML = '';
+    }
+  }
+
+  function validate(){
+    const { grid, allFilled } = readGrid();
+    const reasons = [];
+
+    if(!allFilled){
+      showVerdict(false, 'Tabla incompleta',
+        'Hay casillas vacías. Completa todas las celdas con números antes de sellar el cuadrado.');
+      return;
+    }
+
+    const flat = grid.flat();
+    const expected = new Set();
+    for(let k=1; k<=n*n; k++) expected.add(k);
+    const seen = new Set();
+    let outOfRange = [];
+    let duplicates = new Set();
+    flat.forEach(v => {
+      if(v < 1 || v > n*n) outOfRange.push(v);
+      if(seen.has(v)) duplicates.add(v);
+      seen.add(v);
+    });
+    const missing = [...expected].filter(v => !seen.has(v));
+
+    if(outOfRange.length || duplicates.size || missing.length){
+      if(outOfRange.length) reasons.push(`Hay valores fuera del rango 1–${n*n}: ${[...new Set(outOfRange)].join(', ')}.`);
+      if(duplicates.size) reasons.push(`Hay números repetidos: ${[...duplicates].join(', ')}.`);
+      if(missing.length) reasons.push(`Faltan números de la serie: ${missing.join(', ')}.`);
+      showVerdict(false, 'No es un cuadrado mágico',
+        `El cuadrado de orden ${n} debe usar cada número de 1 a ${n*n} exactamente una vez.`, reasons);
+      markAllBad();
+      return;
+    }
+
+    const M = magicConstant(n);
+    const rowSums = grid.map(row => row.reduce((a,b)=>a+b,0));
+    const colSums = Array.from({length:n}, (_, c) => grid.reduce((a,row)=>a+row[c],0));
+    let diagMain = 0, diagAnti = 0;
+    for(let i=0;i<n;i++){ diagMain += grid[i][i]; diagAnti += grid[i][n-1-i]; }
+
+    const rowOK = rowSums.map(s => s === M);
+    const colOK = colSums.map(s => s === M);
+    const diagMainOK = diagMain === M;
+    const diagAntiOK = diagAnti === M;
+
+    const allRowsOK = rowOK.every(Boolean);
+    const allColsOK = colOK.every(Boolean);
+
+    markCells(rowOK, colOK, diagMainOK, diagAntiOK);
+
+    if(allRowsOK && allColsOK && diagMainOK && diagAntiOK){
+      showVerdict(true, '✓ Es un cuadrado mágico',
+        `Orden ${n} correcto. Toda fila, columna y ambas diagonales suman la constante mágica M = ${M}.`);
+      return;
+    }
+
+    if(!allRowsOK) rowSums.forEach((s,i) => { if(s!==M) reasons.push(`Fila ${i+1} suma ${s} (debería ser ${M}).`); });
+    if(!allColsOK) colSums.forEach((s,i) => { if(s!==M) reasons.push(`Columna ${i+1} suma ${s} (debería ser ${M}).`); });
+    if(!diagMainOK) reasons.push(`Diagonal principal suma ${diagMain} (debería ser ${M}).`);
+    if(!diagAntiOK) reasons.push(`Diagonal secundaria suma ${diagAnti} (debería ser ${M}).`);
+
+    showVerdict(false, 'No es un cuadrado mágico',
+      `Los números 1 a ${n*n} están bien repartidos, pero alguna suma no alcanza la constante M = ${M}.`, reasons);
+  }
+
+  buildBtn.addEventListener('click', () => buildGrid(parseInt(orderSelect.value, 10)));
+  clearBtn.addEventListener('click', clearGrid);
+  fillBtn.addEventListener('click', fillExample);
+  validateBtn.addEventListener('click', validate);
+
+  buildGrid(3);
+})();
+</script>
+
+</body>
+</html>
